@@ -8,7 +8,7 @@
 //! let mut map = ExpiringMap::new();
 //! map.insert("key", "value", Duration::from_millis(50));
 //! std::thread::sleep(Duration::from_millis(60));
-//! assert!(map.get(&"key").is_none())
+//! assert!(map.get(&"key").is_none());
 //! ```
 use std::{
     hash::Hash,
