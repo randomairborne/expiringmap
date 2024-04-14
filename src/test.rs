@@ -48,3 +48,20 @@ fn vacuum_sweeps() {
     m.vacuum();
     assert!(m.inner.get(&"v").is_none());
 }
+
+#[test]
+fn insert_replace() {
+    let mut m = ExpiringMap::new();
+    m.insert("v", "x", Duration::from_secs(5));
+    assert_eq!(
+        m.insert("v", "y", Duration::from_secs(5)).unwrap().value,
+        "x"
+    );
+}
+
+#[test]
+fn insert_replace_sweep() {
+    let mut m = ExpiringMap::new();
+    m.insert("v", "x", Duration::ZERO);
+    assert!(m.insert("v", "y", Duration::from_secs(1)).is_none())
+}
