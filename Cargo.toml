@@ -2,8 +2,12 @@
 name = "expiringmap"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "an AHashMap-backed TTL map"
+keywords = ["ttl", "cache"]
+categories = ["data-structures"]
+readme = "README.md"
+license = "Apache-2.0 OR MIT"
+repository = "https://github.com/randomairborne/expiringmap"
 
 [dependencies]
-ahash = "0.8.11"
+ahash = "0.8"
