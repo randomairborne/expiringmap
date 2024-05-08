@@ -10,6 +10,7 @@
 //! assert!(map.get(&"key").is_none());
 //! ```
 #![allow(clippy::must_use_candidate)]
+
 use std::{
     hash::Hash,
     ops::{Deref, DerefMut},
