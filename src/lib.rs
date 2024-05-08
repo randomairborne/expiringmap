@@ -1,5 +1,4 @@
-//! # ExpiringMap
-//! [`ExpiringMap`] is a wrapper around AHashMap that allows the specification
+//! [`ExpiringMap`] is a wrapper around [`AHashMap`] that allows the specification
 //! of TTLs on entries. It does not support iteration.
 //!
 //! ```rust
@@ -10,6 +9,7 @@
 //! std::thread::sleep(Duration::from_millis(60));
 //! assert!(map.get(&"key").is_none());
 //! ```
+#![allow(clippy::must_use_candidate)]
 use std::{
     hash::Hash,
     ops::{Deref, DerefMut},
@@ -40,12 +40,12 @@ impl<T> Deref for ExpiryValue<T> {
 
 impl<T> ExpiryValue<T> {
     /// When this value was inserted
-    pub fn inserted(&self) -> Instant {
+    pub const fn inserted(&self) -> Instant {
         self.inserted
     }
 
     /// How long this entry will live
-    pub fn ttl(&self) -> Duration {
+    pub const fn ttl(&self) -> Duration {
         self.ttl
     }
 
@@ -96,7 +96,7 @@ impl<K> DerefMut for ExpiringSet<K> {
 }
 
 impl<K: PartialEq + Eq + Hash, V> ExpiringMap<K, V> {
-    /// the minimum size to set last_size to so we don't go bananas with vacuums
+    /// the minimum size to set `last_size` to so we don't go bananas with vacuums
     const MINIMUM_VACUUM_SIZE: usize = 8;
 
     /// Create a new [`ExpiringMap`]
@@ -119,9 +119,9 @@ impl<K: PartialEq + Eq + Hash, V> ExpiringMap<K, V> {
         // less than ttl since they were added
         self.inner.retain(|_, expiry| expiry.not_expired());
         if self.inner.len() > Self::MINIMUM_VACUUM_SIZE {
-            self.last_size = self.inner.len()
+            self.last_size = self.inner.len();
         } else {
-            self.last_size = Self::MINIMUM_VACUUM_SIZE
+            self.last_size = Self::MINIMUM_VACUUM_SIZE;
         }
     }
 
@@ -144,11 +144,7 @@ impl<K: PartialEq + Eq + Hash, V> ExpiringMap<K, V> {
     /// If the value exists and has not expired, return it
     pub fn get(&self, key: &K) -> Option<&V> {
         // get meta checks expiry for us
-        if let Some(v) = self.get_meta(key) {
-            Some(&v.value)
-        } else {
-            None
-        }
+        self.get_meta(key).map(|v| &v.value)
     }
 
     /// If a key exists for this value, get both the key and value if it is not expired
@@ -204,7 +200,7 @@ impl<K: PartialEq + Eq + Hash, V> ExpiringMap<K, V> {
     }
 
     /// Return the size the map was last time it was vacuumed
-    pub fn last_size(&self) -> usize {
+    pub const fn last_size(&self) -> usize {
         self.last_size
     }
 
