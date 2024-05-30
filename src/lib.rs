@@ -12,17 +12,17 @@
 #![allow(clippy::must_use_candidate)]
 
 use std::{
+    collections::HashMap,
     hash::Hash,
     ops::{Deref, DerefMut},
     time::{Duration, Instant},
 };
 
-use ahash::AHashMap;
-
 #[cfg(test)]
 mod test;
 
-type ExpiringMapInner<K, V> = AHashMap<K, ExpiryValue<V>>;
+type ExpiringMapInner<K, V> = HashMap<K, ExpiryValue<V>>;
+
 /// A struct to contain a value and its expiry information
 #[derive(Debug, Clone)]
 pub struct ExpiryValue<T> {

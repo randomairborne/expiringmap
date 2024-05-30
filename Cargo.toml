@@ -1,8 +1,8 @@
 [package]
 name = "expiringmap"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
-description = "an AHashMap-backed TTL map"
+description = "a HashMap-backed TTL map"
 keywords = ["ttl", "cache"]
 categories = ["data-structures"]
 readme = "README.md"
@@ -10,4 +10,3 @@ license = "Apache-2.0 OR MIT"
 repository = "https://github.com/randomairborne/expiringmap"
 
 [dependencies]
-ahash = "0.8"
