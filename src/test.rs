@@ -5,7 +5,7 @@ use crate::{ExpiringMap, ExpiringSet};
 fn map_works() {
     let mut m = ExpiringMap::new();
     m.insert("v", "x", Duration::from_millis(50));
-    assert!(m.contains_key(&"v"));
+    assert_eq!(m.get(&"v"), Some(&"x"));
     sleep(Duration::from_millis(75));
     assert!(!m.contains_key(&"v"));
 }
@@ -35,7 +35,7 @@ fn remaining_calc() {
 #[test]
 fn vacuum_keeps() {
     let mut m = ExpiringSet::new();
-    m.insert("v", Duration::from_millis(50));
+    m.insert("v", Duration::from_secs(50));
     m.vacuum();
     assert!(m.get(&"v").is_some());
 }
@@ -63,5 +63,6 @@ fn insert_replace() {
 fn insert_replace_sweep() {
     let mut m = ExpiringMap::new();
     m.insert("v", "x", Duration::ZERO);
-    assert!(m.insert("v", "y", Duration::from_secs(1)).is_none())
+    assert!(m.insert("v", "y", Duration::from_secs(100)).is_none());
+    assert!(m.insert("v", "z", Duration::from_secs(1)).is_some());
 }
