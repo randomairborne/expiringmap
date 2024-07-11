@@ -1,4 +1,4 @@
-//! [`ExpiringMap`] is a wrapper around [`AHashMap`] that allows the specification
+//! [`ExpiringMap`] is a wrapper around [`HashMap`] that allows the specification
 //! of TTLs on entries. It does not support iteration.
 //!
 //! ```rust
@@ -12,6 +12,7 @@
 #![allow(clippy::must_use_candidate)]
 
 use std::{
+    borrow::Borrow,
     collections::HashMap,
     hash::Hash,
     ops::{Deref, DerefMut},
@@ -71,7 +72,7 @@ impl<T> ExpiryValue<T> {
     }
 }
 
-/// A wrapper around [`AHashMap`] which adds TTLs
+/// A wrapper around [`HashMap`] which adds TTLs
 #[derive(Debug)]
 pub struct ExpiringMap<K, V> {
     last_size: usize,
@@ -134,7 +135,11 @@ impl<K: PartialEq + Eq + Hash, V> ExpiringMap<K, V> {
     }
 
     /// If the value exists and has not expired, return its expiry data
-    pub fn get_meta(&self, key: &K) -> Option<&ExpiryValue<V>> {
+    pub fn get_meta<Q: ?Sized>(&self, key: &Q) -> Option<&ExpiryValue<V>>
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq,
+    {
         let val = self.inner.get(key);
         if val.is_some_and(ExpiryValue::expired) {
             return None;
@@ -143,13 +148,21 @@ impl<K: PartialEq + Eq + Hash, V> ExpiringMap<K, V> {
     }
 
     /// If the value exists and has not expired, return it
-    pub fn get(&self, key: &K) -> Option<&V> {
+    pub fn get<Q: ?Sized>(&self, key: &Q) -> Option<&V>
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq,
+    {
         // get meta checks expiry for us
         self.get_meta(key).map(|v| &v.value)
     }
 
     /// If a key exists for this value, get both the key and value if it is not expired
-    pub fn get_key_value(&self, key: &K) -> Option<(&K, &V)> {
+    pub fn get_key_value<Q: ?Sized>(&self, key: &Q) -> Option<(&K, &V)>
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq,
+    {
         if let Some((k, v)) = self.inner.get_key_value(key) {
             if v.expired() {
                 None
@@ -162,7 +175,11 @@ impl<K: PartialEq + Eq + Hash, V> ExpiringMap<K, V> {
     }
 
     /// Get a mutable reference to the value pointed to by a key, if it is not expired
-    pub fn get_mut(&mut self, key: &K) -> Option<&mut V> {
+    pub fn get_mut<Q: ?Sized>(&mut self, key: &Q) -> Option<&mut V>
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq,
+    {
         if let Some(v) = self.inner.get_mut(key) {
             if v.expired() {
                 None
@@ -188,12 +205,20 @@ impl<K: PartialEq + Eq + Hash, V> ExpiringMap<K, V> {
     }
 
     /// If this key exists and is not expired, returns true
-    pub fn contains_key(&self, key: &K) -> bool {
+    pub fn contains_key<Q: ?Sized>(&self, key: &Q) -> bool
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq,
+    {
         self.get_meta(key).is_some_and(ExpiryValue::not_expired)
     }
 
     /// Remove an item from the map. If it exists and has not expired, return true
-    pub fn remove(&mut self, key: &K) -> bool {
+    pub fn remove<Q: ?Sized>(&mut self, key: &Q) -> bool
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq,
+    {
         self.inner
             .remove(key)
             .as_ref()
@@ -265,13 +290,21 @@ impl<K: PartialEq + Eq + Hash> ExpiringSet<K> {
     }
 
     /// Returns true if the set contains this value
-    pub fn contains(&self, key: &K) -> bool {
+    pub fn contains<Q: ?Sized>(&self, key: &Q) -> bool
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq,
+    {
         // contains_key checks expiry for us
         self.0.contains_key(key)
     }
 
     /// If it exists and has not expired, remove and return the value at this key
-    pub fn take(&mut self, key: &K) -> Option<K> {
+    pub fn take<Q: ?Sized>(&mut self, key: &Q) -> Option<K>
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq,
+    {
         self.0
             .inner
             .remove_entry(key)
