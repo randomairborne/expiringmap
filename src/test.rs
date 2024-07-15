@@ -46,7 +46,7 @@ fn vacuum_sweeps() {
     m.insert("v", Duration::from_millis(50));
     sleep(Duration::from_millis(75));
     m.vacuum();
-    assert!(m.inner.get(&"v").is_none());
+    assert!(!m.inner.contains_key(&"v"));
 }
 
 #[test]
