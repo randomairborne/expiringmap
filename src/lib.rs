@@ -194,7 +194,7 @@ impl<K: PartialEq + Eq + Hash, V> ExpiringMap<K, V> {
     }
 
     /// Insert a value into the map, returning the old value if it has not expired and existed
-    pub fn insert(&mut self, key: K, value: V, ttl: Duration) -> Option<ExpiryValue<V>> {
+    pub fn insert(&mut self, key: K, value: V, ttl: Duration) -> Option<V> {
         self.vacuum_if_needed();
         let entry = ExpiryValue {
             inserted: Instant::now(),
@@ -204,6 +204,7 @@ impl<K: PartialEq + Eq + Hash, V> ExpiringMap<K, V> {
         self.inner
             .insert(key, entry)
             .filter(ExpiryValue::not_expired)
+            .map(ExpiryValue::value)
     }
 
     /// If this key exists and is not expired, returns true
