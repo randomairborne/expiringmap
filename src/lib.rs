@@ -135,11 +135,7 @@ impl<K: PartialEq + Eq + Hash, V> ExpiringMap<K, V> {
 
     /// If the value exists and has not expired, return its expiry data
     pub fn get_meta(&self, key: &K) -> Option<&ExpiryValue<V>> {
-        let val = self.inner.get(key);
-        if val.is_some_and(ExpiryValue::expired) {
-            return None;
-        }
-        val
+        self.inner.get(key).filter(|x| x.not_expired())
     }
 
     /// If the value exists and has not expired, return it
@@ -150,28 +146,18 @@ impl<K: PartialEq + Eq + Hash, V> ExpiringMap<K, V> {
 
     /// If a key exists for this value, get both the key and value if it is not expired
     pub fn get_key_value(&self, key: &K) -> Option<(&K, &V)> {
-        if let Some((k, v)) = self.inner.get_key_value(key) {
-            if v.expired() {
-                None
-            } else {
-                Some((k, &v.value))
-            }
-        } else {
-            None
-        }
+        self.inner
+            .get_key_value(key)
+            .filter(|(_, v)| v.not_expired())
+            .map(|(k, v)| (k, &v.value))
     }
 
     /// Get a mutable reference to the value pointed to by a key, if it is not expired
     pub fn get_mut(&mut self, key: &K) -> Option<&mut V> {
-        if let Some(v) = self.inner.get_mut(key) {
-            if v.expired() {
-                None
-            } else {
-                Some(&mut v.value)
-            }
-        } else {
-            None
-        }
+        self.inner
+            .get_mut(key)
+            .filter(|x| x.not_expired())
+            .map(|v| &mut v.value)
     }
 
     /// Insert a value into the map, returning the old value if it has not expired and existed
