@@ -250,16 +250,18 @@ impl<K: PartialEq + Eq + Hash, V> ExpiringMap<K, V> {
         self.inner.reserve(addtional);
     }
 
-    /// Shrink the internal map to the minimum allowable size
-    /// in accordance with the resize policy
+    /// Remove all of the expired entries and shrink the map to the minimum
+    /// allowable size in accordance with the resize policy
     pub fn shrink_to_fit(&mut self) {
+        self.vacuum();
         self.inner.shrink_to_fit();
     }
 
-    /// Shrink the internal map to the minimum of the
-    /// minimum allowable size and the `min_capacity`
-    /// in accordance with the resize policy
+    /// Remove all of the expired entries and shrink the map to the minimum of
+    /// the minimum allowable size and the `min_capacity` in accordance with the
+    /// resize policy
     pub fn shrink_to(&mut self, min_capacity: usize) {
+        self.vacuum();
         self.inner.shrink_to(min_capacity);
     }
 }
@@ -310,6 +312,18 @@ impl<K: PartialEq + Eq + Hash> ExpiringSet<K> {
             .remove_entry(key)
             .filter(|(_, v)| v.not_expired())
             .map(|v| v.0)
+    }
+
+    /// Shrink the set to the minimum allowable size in accordance with the
+    /// resize policy
+    pub fn shrink_to_fit(&mut self) {
+        self.0.shrink_to_fit();
+    }
+
+    /// Shrink the set to the minimum of the minimum allowable size and the
+    /// `min_capacity` in accordance with the resize policy
+    pub fn shrink_to(&mut self, min_capacity: usize) {
+        self.0.shrink_to(min_capacity);
     }
 }
 
