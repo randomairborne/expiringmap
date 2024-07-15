@@ -1,4 +1,4 @@
-//! [`ExpiringMap`] is a wrapper around [`AHashMap`] that allows the specification
+//! [`ExpiringMap`] is a wrapper around [`HashMap`] that allows the specification
 //! of TTLs on entries. It does not support iteration.
 //!
 //! ```rust
@@ -72,7 +72,7 @@ impl<T> ExpiryValue<T> {
     }
 }
 
-/// A wrapper around [`AHashMap`] which adds TTLs
+/// A wrapper around [`HashMap`] which adds TTLs
 #[derive(Debug)]
 pub struct ExpiringMap<K, V> {
     last_size: usize,
