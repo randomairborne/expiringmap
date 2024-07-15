@@ -46,7 +46,7 @@ fn vacuum_sweeps() {
     m.insert("v", Duration::from_millis(50));
     sleep(Duration::from_millis(75));
     m.vacuum();
-    assert!(m.inner.get(&"v").is_none());
+    assert!(!m.inner.contains_key(&"v"));
 }
 
 #[test]
@@ -65,4 +65,17 @@ fn insert_replace_sweep() {
     m.insert("v", "x", Duration::ZERO);
     assert!(m.insert("v", "y", Duration::from_secs(100)).is_none());
     assert!(m.insert("v", "z", Duration::from_secs(1)).is_some());
+}
+
+#[test]
+fn test_borrow() {
+    let mut m: ExpiringMap<String, usize> = ExpiringMap::new();
+    m.insert(String::from("x"), 1, Duration::from_secs(5));
+    assert_eq!(m.get("x"), Some(&1));
+    assert_eq!(m.get(&String::from("x")), Some(&1));
+
+    let mut m: ExpiringSet<String> = ExpiringSet::new();
+    m.insert(String::from("x"), Duration::from_secs(5));
+    assert!(m.contains("x"));
+    assert!(m.contains(&String::from("x")));
 }
