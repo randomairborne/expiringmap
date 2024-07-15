@@ -142,11 +142,7 @@ impl<K: PartialEq + Eq + Hash, V> ExpiringMap<K, V> {
         K: Borrow<Q>,
         Q: ?Sized + Hash + Eq,
     {
-        let val = self.inner.get(key);
-        if val.is_some_and(ExpiryValue::expired) {
-            return None;
-        }
-        val
+        self.inner.get(key).filter(|x| x.not_expired())
     }
 
     /// If the value exists and has not expired, return it
@@ -165,15 +161,10 @@ impl<K: PartialEq + Eq + Hash, V> ExpiringMap<K, V> {
         K: Borrow<Q>,
         Q: ?Sized + Hash + Eq,
     {
-        if let Some((k, v)) = self.inner.get_key_value(key) {
-            if v.expired() {
-                None
-            } else {
-                Some((k, &v.value))
-            }
-        } else {
-            None
-        }
+        self.inner
+            .get_key_value(key)
+            .filter(|(_, v)| v.not_expired())
+            .map(|(k, v)| (k, &v.value))
     }
 
     /// Get a mutable reference to the value pointed to by a key, if it is not expired
@@ -182,15 +173,10 @@ impl<K: PartialEq + Eq + Hash, V> ExpiringMap<K, V> {
         K: Borrow<Q>,
         Q: ?Sized + Hash + Eq,
     {
-        if let Some(v) = self.inner.get_mut(key) {
-            if v.expired() {
-                None
-            } else {
-                Some(&mut v.value)
-            }
-        } else {
-            None
-        }
+        self.inner
+            .get_mut(key)
+            .filter(|x| x.not_expired())
+            .map(|v| &mut v.value)
     }
 
     /// Insert a value into the map, returning the old value if it has not expired and existed
