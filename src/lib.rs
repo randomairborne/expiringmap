@@ -118,7 +118,9 @@ impl<K: PartialEq + Eq + Hash, V> ExpiringMap<K, V> {
     pub fn vacuum(&mut self) {
         // keep all the items in the set where it has been
         // less than ttl since they were added
-        self.inner.retain(|_, expiry| expiry.not_expired());
+        let now = Instant::now();
+        self.inner
+            .retain(|_, expiry| now.duration_since(expiry.inserted) < expiry.ttl);
         if self.inner.len() > Self::MINIMUM_VACUUM_SIZE {
             self.last_size = self.inner.len();
         } else {
