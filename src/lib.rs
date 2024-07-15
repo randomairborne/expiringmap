@@ -4,8 +4,9 @@
 //! ```rust
 //! use std::time::Duration;
 //! use expiringmap::ExpiringMap;
-//! let mut map = ExpiringMap::new();
-//! map.insert("key", "value", Duration::from_millis(50));
+//! let mut map = ExpiringMap::new(Duration::from_millis(50));
+//! map.insert("key", "value");
+//! assert!(map.get(&"key").is_some());
 //! std::thread::sleep(Duration::from_millis(60));
 //! assert!(map.get(&"key").is_none());
 //! ```
@@ -76,6 +77,7 @@ impl<T> ExpiryValue<T> {
 #[derive(Debug)]
 pub struct ExpiringMap<K, V> {
     last_size: usize,
+    duration: Duration,
     inner: ExpiringMapInner<K, V>,
 }
 
@@ -102,15 +104,16 @@ impl<K: PartialEq + Eq + Hash, V> ExpiringMap<K, V> {
     const MINIMUM_VACUUM_SIZE: usize = 8;
 
     /// Create a new [`ExpiringMap`]
-    pub fn new() -> Self {
-        Self::with_capacity(0)
+    pub fn new(duration: Duration) -> Self {
+        Self::with_capacity(duration, 0)
     }
 
     /// Create a new [`ExpiringMap`] with the specified capacity
-    pub fn with_capacity(capacity: usize) -> Self {
+    pub fn with_capacity(duration: Duration, capacity: usize) -> Self {
         Self {
             inner: ExpiringMapInner::with_capacity(capacity),
             last_size: Self::MINIMUM_VACUUM_SIZE,
+            duration,
         }
     }
 
@@ -194,11 +197,11 @@ impl<K: PartialEq + Eq + Hash, V> ExpiringMap<K, V> {
     }
 
     /// Insert a value into the map, returning the old value if it has not expired and existed
-    pub fn insert(&mut self, key: K, value: V, ttl: Duration) -> Option<ExpiryValue<V>> {
+    pub fn insert(&mut self, key: K, value: V) -> Option<ExpiryValue<V>> {
         self.vacuum_if_needed();
         let entry = ExpiryValue {
             inserted: Instant::now(),
-            ttl,
+            ttl: self.duration,
             value,
         };
         self.inner
@@ -270,27 +273,18 @@ impl<K: PartialEq + Eq + Hash, V> ExpiringMap<K, V> {
 
 impl<K: PartialEq + Eq + Hash> ExpiringSet<K> {
     /// Create a new [`ExpiringSet`]
-    pub fn new() -> Self {
-        Self::with_capacity(0)
+    pub fn new(duration: Duration) -> Self {
+        Self::with_capacity(duration, 0)
     }
 
     /// Create a new [`ExpiringSet`] with the specified capacity
-    pub fn with_capacity(capacity: usize) -> Self {
-        Self(ExpiringMap::with_capacity(capacity))
+    pub fn with_capacity(duration: Duration, capacity: usize) -> Self {
+        Self(ExpiringMap::with_capacity(duration, capacity))
     }
 
     /// Returns true if the set contains this value
-    pub fn insert(&mut self, key: K, ttl: Duration) -> bool {
-        self.vacuum_if_needed();
-        let entry = ExpiryValue {
-            inserted: Instant::now(),
-            ttl,
-            value: (),
-        };
-        self.inner
-            .insert(key, entry)
-            .filter(ExpiryValue::not_expired)
-            .is_some()
+    pub fn insert(&mut self, key: K) -> bool {
+        self.0.insert(key, ()).is_some()
     }
 
     /// Returns true if the set contains this value
@@ -326,17 +320,5 @@ impl<K: PartialEq + Eq + Hash> ExpiringSet<K> {
     /// `min_capacity` in accordance with the resize policy
     pub fn shrink_to(&mut self, min_capacity: usize) {
         self.0.shrink_to(min_capacity);
-    }
-}
-
-impl<K: PartialEq + Eq + Hash, V> Default for ExpiringMap<K, V> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<K: PartialEq + Eq + Hash> Default for ExpiringSet<K> {
-    fn default() -> Self {
-        Self::new()
     }
 }
