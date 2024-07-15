@@ -1,4 +1,4 @@
-//! [`ExpiringMap`] is a wrapper around [`AHashMap`] that allows the specification
+//! [`ExpiringMap`] is a wrapper around [`HashMap`] that allows the specification
 //! of TTLs on entries. It does not support iteration.
 //!
 //! ```rust
@@ -12,6 +12,7 @@
 #![allow(clippy::must_use_candidate)]
 
 use std::{
+    borrow::Borrow,
     collections::HashMap,
     hash::Hash,
     ops::{Deref, DerefMut},
@@ -71,7 +72,7 @@ impl<T> ExpiryValue<T> {
     }
 }
 
-/// A wrapper around [`AHashMap`] which adds TTLs
+/// A wrapper around [`HashMap`] which adds TTLs
 #[derive(Debug)]
 pub struct ExpiringMap<K, V> {
     last_size: usize,
@@ -118,7 +119,9 @@ impl<K: PartialEq + Eq + Hash, V> ExpiringMap<K, V> {
     pub fn vacuum(&mut self) {
         // keep all the items in the set where it has been
         // less than ttl since they were added
-        self.inner.retain(|_, expiry| expiry.not_expired());
+        let now = Instant::now();
+        self.inner
+            .retain(|_, expiry| now.duration_since(expiry.inserted) < expiry.ttl);
         if self.inner.len() > Self::MINIMUM_VACUUM_SIZE {
             self.last_size = self.inner.len();
         } else {
@@ -134,18 +137,30 @@ impl<K: PartialEq + Eq + Hash, V> ExpiringMap<K, V> {
     }
 
     /// If the value exists and has not expired, return its expiry data
-    pub fn get_meta(&self, key: &K) -> Option<&ExpiryValue<V>> {
+    pub fn get_meta<Q>(&self, key: &Q) -> Option<&ExpiryValue<V>>
+    where
+        K: Borrow<Q>,
+        Q: ?Sized + Hash + Eq,
+    {
         self.inner.get(key).filter(|x| x.not_expired())
     }
 
     /// If the value exists and has not expired, return it
-    pub fn get(&self, key: &K) -> Option<&V> {
+    pub fn get<Q>(&self, key: &Q) -> Option<&V>
+    where
+        K: Borrow<Q>,
+        Q: ?Sized + Hash + Eq,
+    {
         // get meta checks expiry for us
         self.get_meta(key).map(|v| &v.value)
     }
 
     /// If a key exists for this value, get both the key and value if it is not expired
-    pub fn get_key_value(&self, key: &K) -> Option<(&K, &V)> {
+    pub fn get_key_value<Q>(&self, key: &Q) -> Option<(&K, &V)>
+    where
+        K: Borrow<Q>,
+        Q: ?Sized + Hash + Eq,
+    {
         self.inner
             .get_key_value(key)
             .filter(|(_, v)| v.not_expired())
@@ -153,7 +168,11 @@ impl<K: PartialEq + Eq + Hash, V> ExpiringMap<K, V> {
     }
 
     /// Get a mutable reference to the value pointed to by a key, if it is not expired
-    pub fn get_mut(&mut self, key: &K) -> Option<&mut V> {
+    pub fn get_mut<Q>(&mut self, key: &Q) -> Option<&mut V>
+    where
+        K: Borrow<Q>,
+        Q: ?Sized + Hash + Eq,
+    {
         self.inner
             .get_mut(key)
             .filter(|x| x.not_expired())
@@ -174,12 +193,20 @@ impl<K: PartialEq + Eq + Hash, V> ExpiringMap<K, V> {
     }
 
     /// If this key exists and is not expired, returns true
-    pub fn contains_key(&self, key: &K) -> bool {
+    pub fn contains_key<Q>(&self, key: &Q) -> bool
+    where
+        K: Borrow<Q>,
+        Q: ?Sized + Hash + Eq,
+    {
         self.get_meta(key).is_some_and(ExpiryValue::not_expired)
     }
 
     /// Remove an item from the map. If it exists and has not expired, return true
-    pub fn remove(&mut self, key: &K) -> bool {
+    pub fn remove<Q>(&mut self, key: &Q) -> bool
+    where
+        K: Borrow<Q>,
+        Q: ?Sized + Hash + Eq,
+    {
         self.inner
             .remove(key)
             .as_ref()
@@ -211,16 +238,18 @@ impl<K: PartialEq + Eq + Hash, V> ExpiringMap<K, V> {
         self.inner.reserve(addtional);
     }
 
-    /// Shrink the internal map to the minimum allowable size
-    /// in accordance with the resize policy
+    /// Remove all of the expired entries and shrink the map to the minimum
+    /// allowable size in accordance with the resize policy
     pub fn shrink_to_fit(&mut self) {
+        self.vacuum();
         self.inner.shrink_to_fit();
     }
 
-    /// Shrink the internal map to the minimum of the
-    /// minimum allowable size and the `min_capacity`
-    /// in accordance with the resize policy
+    /// Remove all of the expired entries and shrink the map to the minimum of
+    /// the minimum allowable size and the `min_capacity` in accordance with the
+    /// resize policy
     pub fn shrink_to(&mut self, min_capacity: usize) {
+        self.vacuum();
         self.inner.shrink_to(min_capacity);
     }
 }
@@ -251,18 +280,38 @@ impl<K: PartialEq + Eq + Hash> ExpiringSet<K> {
     }
 
     /// Returns true if the set contains this value
-    pub fn contains(&self, key: &K) -> bool {
+    pub fn contains<Q>(&self, key: &Q) -> bool
+    where
+        K: Borrow<Q>,
+        Q: ?Sized + Hash + Eq,
+    {
         // contains_key checks expiry for us
         self.0.contains_key(key)
     }
 
     /// If it exists and has not expired, remove and return the value at this key
-    pub fn take(&mut self, key: &K) -> Option<K> {
+    pub fn take<Q>(&mut self, key: &Q) -> Option<K>
+    where
+        K: Borrow<Q>,
+        Q: ?Sized + Hash + Eq,
+    {
         self.0
             .inner
             .remove_entry(key)
             .filter(|(_, v)| v.not_expired())
             .map(|v| v.0)
+    }
+
+    /// Shrink the set to the minimum allowable size in accordance with the
+    /// resize policy
+    pub fn shrink_to_fit(&mut self) {
+        self.0.shrink_to_fit();
+    }
+
+    /// Shrink the set to the minimum of the minimum allowable size and the
+    /// `min_capacity` in accordance with the resize policy
+    pub fn shrink_to(&mut self, min_capacity: usize) {
+        self.0.shrink_to(min_capacity);
     }
 }
 
