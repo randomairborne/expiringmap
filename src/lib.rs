@@ -252,6 +252,18 @@ impl<K: PartialEq + Eq + Hash, V> ExpiringMap<K, V> {
         self.vacuum();
         self.inner.shrink_to(min_capacity);
     }
+
+    /// Removes a key from the map, returning the stored key and value if the key was previously in the map.
+    pub fn remove_entry<Q>(&mut self, key: &Q) -> Option<(K, V)>
+    where
+        K: Borrow<Q>,
+        Q: ?Sized + Hash + Eq,
+    {
+        self.inner
+            .remove_entry(key)
+            .filter(|(_, v)| v.not_expired())
+            .map(|(k, v)| (k, v.value))
+    }
 }
 
 impl<K: PartialEq + Eq + Hash> ExpiringSet<K> {
@@ -295,11 +307,7 @@ impl<K: PartialEq + Eq + Hash> ExpiringSet<K> {
         K: Borrow<Q>,
         Q: ?Sized + Hash + Eq,
     {
-        self.0
-            .inner
-            .remove_entry(key)
-            .filter(|(_, v)| v.not_expired())
-            .map(|v| v.0)
+        self.0.remove_entry(key).map(|(k, _)| k)
     }
 
     /// Shrink the set to the minimum allowable size in accordance with the
