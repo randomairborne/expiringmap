@@ -9,6 +9,7 @@
 //! std::thread::sleep(Duration::from_millis(60));
 //! assert!(map.get(&"key").is_none());
 //! ```
+#![warn(clippy::all, clippy::pedantic, clippy::cargo, clippy::nursery)]
 #![allow(clippy::must_use_candidate)]
 
 use std::{
@@ -307,7 +308,7 @@ impl<K: PartialEq + Eq + Hash> ExpiringSet<K> {
         K: Borrow<Q>,
         Q: ?Sized + Hash + Eq,
     {
-        self.0.remove_entry(key).map(|(k, _)| k)
+        self.0.remove_entry(key).map(|(k, ())| k)
     }
 
     /// Shrink the set to the minimum allowable size in accordance with the
