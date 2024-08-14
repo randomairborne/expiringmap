@@ -53,10 +53,7 @@ fn vacuum_sweeps() {
 fn insert_replace() {
     let mut m = ExpiringMap::new();
     m.insert("v", "x", Duration::from_secs(5));
-    assert_eq!(
-        m.insert("v", "y", Duration::from_secs(5)).unwrap().value,
-        "x"
-    );
+    assert_eq!(m.insert("v", "y", Duration::from_secs(5)).unwrap(), "x");
 }
 
 #[test]
